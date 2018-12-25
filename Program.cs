@@ -1,6 +1,5 @@
 ﻿using System;
 
-[assembly: log4net.Config.XmlConfigurator(ConfigFile = "log.config", Watch = false)]
 
 namespace Bitwarden_ExportBackup
 {

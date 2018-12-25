@@ -1,4 +1,8 @@
-﻿using Ionic.Zip;
+﻿using Bitwarden_ExportBackup.Extensions;
+using Bitwarden_ExportBackup.Model;
+using Bitwarden_ExportBackup.Model.Exceptions;
+using ICSharpCode.SharpZipLib.Zip;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -51,7 +55,7 @@ namespace Bitwarden_ExportBackup
                 if (updateAvailable)
                 {
                     Update(processOutput);
-                    GetVersion();
+                    CheckForUpdates();
                 }
                 else
                 {
@@ -87,12 +91,22 @@ namespace Bitwarden_ExportBackup
 
             using (MemoryStream streamDownloadedFile = new MemoryStream(fileContent))
             {
-                using (ZipFile downloadedUpdate = ZipFile.Read(streamDownloadedFile))
+                using (ZipFile downloadedUpdate = new ZipFile(streamDownloadedFile))
                 {
                     string outputDirectory = Path.GetDirectoryName(_executable);
 
                     _logWriter.Info($"Extracting to {outputDirectory}");
-                    downloadedUpdate.ExtractSelectedEntries("name = " + Path.GetFileName(_executable), string.Empty, outputDirectory);
+                    ZipEntry entry = downloadedUpdate.GetEntry(Path.GetFileName(_executable));
+
+                    using (Stream newExecutable = downloadedUpdate.GetInputStream(entry))
+                    {
+                        byte[] executableBuffer = new byte[entry.Size];
+                        newExecutable.Read(executableBuffer, 0, executableBuffer.Length);
+                        File.WriteAllBytes(_executable, executableBuffer);
+
+                        newExecutable.Close();
+                    }
+
                     _logWriter.Info("Extraction completed");
                 }
             }
@@ -122,13 +136,88 @@ namespace Bitwarden_ExportBackup
         }
 
 
-        public void Login(string username, string password)
+
+        /// <summary>
+        /// Updates the version of the currently existing cli executable
+        /// </summary>
+        public void Sync()
         {
+            _logWriter.Info("Synchronizing Vault..");
+
+            if(string.IsNullOrEmpty(_currentSessionKey))
+            {
+                throw new BitwardenSessionEmptyException(this);
+            }
+
+            Process process = new Process();
+            process.StartInfo.FileName = _executable;
+            process.StartInfo.Arguments = $"sync --session {_currentSessionKey}";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+
+            process.Start();
+            process.WaitForExit();
+
+            string processOutput = process.StandardOutput.ReadToEnd().Trim();
+
+            _logWriter.Debug($"Output: {processOutput}");
+        }
+
+        /// <summary>
+        /// Returns a List of objects depending on the type supplied
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public List<BitwardenObject> GetObjects(string type)
+        {
+            List<BitwardenObject> lstObjects = new List<BitwardenObject>();
+
+            _logWriter.Info($"Retrieving objects [{type}]..");
+
+            if (string.IsNullOrEmpty(_currentSessionKey))
+            {
+                throw new BitwardenSessionEmptyException(this);
+            }
+
+            Process process = new Process();
+            process.StartInfo.FileName = _executable;
+            process.StartInfo.Arguments = $"list {type} --session {_currentSessionKey}";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.UseShellExecute = false;
+
+            process.Start();
+
+            string processOutput = process.StandardOutput.ReadToEnd().Trim();
+            string processError = process.StandardError.ReadToEnd().Trim();
+            process.WaitForExit();
+
+            if (!string.IsNullOrWhiteSpace(processOutput))
+            {
+                byte[] encodedOutput = Console.OutputEncoding.GetBytes(processOutput);
+                lstObjects = JsonConvert.DeserializeObject<List<BitwardenObject>>(Encoding.UTF8.GetString(encodedOutput));
+            }
+            if (!string.IsNullOrWhiteSpace(processError))
+            {
+                _logWriter.Warn($"StdError: {processError}");
+            }
+
+            return lstObjects;
+        }
+
+        /// <summary>
+        /// Logs in to Bitwarden either via CLI (if no credentials are passed) or directly via parameter
+        /// </summary>
+        /// <param name="username">Bitwarden username - leave empty for cli handling</param>
+        /// <param name="password">Bitwarden password - leave empty for cli handling</param>
+        public bool Login(string username, string password)
+        {
+            bool retVal = false;
             string usernamePasswordArguments = string.Empty;
 
             _logWriter.Info("Logging in..");
 
-            if(!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+            if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
             {
                 usernamePasswordArguments = $"\"{username}\" \"{password}\"";
             }
@@ -150,18 +239,71 @@ namespace Bitwarden_ExportBackup
             if (!wasAlreadyLoggedIn)
             {
                 SetLastLoginTime();
+                _currentSessionKey = processOutput;
+                retVal = process.ExitCode == 0;
+
             }
+            else
+            {
+                _logWriter.Info("Unlock is required after login..");
+                retVal = Unlock(password);
+            }
+
+            return retVal;
         }
 
+
+        /// <summary>
+        /// Unlocks the vault 
+        /// is used in case the cli was already logged in and no session key was provided
+        /// </summary>
+        /// <param name="password"></param>
+        private bool Unlock(string password)
+        {
+            bool retVal = false;
+            string passwordArgument = string.Empty;
+            if (!string.IsNullOrWhiteSpace(password))
+            {
+                passwordArgument = $"\"{password}\"";
+            }
+
+            Process process = new Process();
+            process.StartInfo.FileName = _executable;
+            process.StartInfo.Arguments = $"unlock {passwordArgument} --raw";
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+
+            process.Start();
+            process.WaitForExit();
+
+            string processOutput = process.StandardOutput.ReadToEnd().Trim();
+            //string processError = process.StandardError.ReadToEnd().Trim();
+
+            _logWriter.Debug($"Output: {processOutput}");
+            _currentSessionKey = processOutput;
+            retVal = process.ExitCode == 0;
+
+            return retVal;
+        }
+
+
+        /// <summary>
+        /// Logs the user out if the maximum login duration was surpassed
+        /// </summary>
+        /// <param name="loginDuration">Duration the user may be logged in</param>
         public void LogoutIfRequired(TimeSpan loginDuration)
         {
             DateTime logoutDate = GetLastLoginTime() + loginDuration;
             if (logoutDate <= DateTime.Now)
             {
+                _logWriter.Info("Logout is required");
                 Logout();
             }
         }
 
+        /// <summary>
+        /// Logs the user out
+        /// </summary>
         private void Logout()
         {
             _logWriter.Info("Logging out..");
@@ -179,6 +321,67 @@ namespace Bitwarden_ExportBackup
             _logWriter.Debug($"Output: {processOutput}");
         }
 
+        /// <summary>
+        /// Returns a template for creating a new item object
+        /// </summary>
+        /// <returns></returns>
+        public BitwardenItemTemplate GetItemTemplate()
+        {
+            if (string.IsNullOrEmpty(_currentSessionKey))
+            {
+                throw new BitwardenSessionEmptyException(this);
+            }
+
+            Process process = new Process();
+            process.StartInfo.FileName = _executable;
+            process.StartInfo.Arguments += $"get template item --session {_currentSessionKey}";
+            process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+            process.Start();
+            process.WaitForExit();
+
+            string processOutput = process.StandardOutput.ReadToEnd().Trim();
+            _logWriter.Debug($"Output: {processOutput}");
+
+            return JsonConvert.DeserializeObject< BitwardenItemTemplate>(processOutput);
+        }
+
+        /// <summary>
+        /// Creates a new item within the Bitwarden Vault
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public bool CreateItem(BitwardenItemTemplate item)
+        {
+            bool retVal = false;
+
+            _logWriter.Info($"Creating Item [{item.Name}]");
+
+            if (string.IsNullOrEmpty(_currentSessionKey))
+            {
+                throw new BitwardenSessionEmptyException(this);
+            }
+
+            string itemSerialized = JsonConvert.SerializeObject(item).ToBase64(Encoding.Default);
+
+            Process process = new Process();
+            process.StartInfo.FileName = _executable;
+            process.StartInfo.Arguments += $"create item {itemSerialized} --session {_currentSessionKey}";
+            process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+            process.Start();
+            process.WaitForExit();
+
+            string processOutput = process.StandardOutput.ReadToEnd().Trim();
+            _logWriter.Debug($"Output: {processOutput}");
+
+            retVal = process.ExitCode == 0;
+
+            return retVal;
+        }
+
         private DateTime GetLastLoginTime()
         {
             if (!File.Exists(LAST_LOGIN_FILE)) return DateTime.MinValue;
@@ -187,6 +390,11 @@ namespace Bitwarden_ExportBackup
         private void SetLastLoginTime()
         {
             File.WriteAllText(LAST_LOGIN_FILE, DateTime.Now.ToString("s"), Encoding.UTF8);
+        }
+
+        public override string ToString()
+        {
+            return _executable + " " + _version;
         }
     }
 }
