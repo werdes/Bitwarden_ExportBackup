@@ -40,8 +40,9 @@
     <None Update="log.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Vendor\bw.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Vendor\" />
   </ItemGroup>
 </Project>

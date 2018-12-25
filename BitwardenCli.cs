@@ -82,8 +82,6 @@ namespace Bitwarden_ExportBackup
 
             _logWriter.Info($"Moved {_executable} to {oldVersionDestFilePath}");
 
-
-
             _logWriter.Info($"Downloading latest release from {downloadPath}");
 
             WebClient webClientUpdateDownload = new WebClient();
