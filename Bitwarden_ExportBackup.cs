@@ -163,16 +163,17 @@ namespace Bitwarden_ExportBackup
             lstItems.ForEach(x => builder.AppendLine(x.ToCsv()));
 
             byte[] bufferCsvFile = Encoding.GetEncoding("iso-8859-1").GetBytes(builder.ToString());
+            byte[] bufferJsonFile = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(lstItems, Formatting.Indented));
 
             using (FileStream zipFileStream = File.Create(outputPath))
             {
                 using (ZipOutputStream zipOutputStream = new ZipOutputStream(zipFileStream))
                 {
+                    zipOutputStream.SetLevel(9);
+                    zipOutputStream.Password = password;
+
                     using (MemoryStream csvStream = new MemoryStream(bufferCsvFile))
                     {
-                        zipOutputStream.SetLevel(9);
-                        zipOutputStream.Password = password;
-
                         ZipEntry entry = new ZipEntry(Path.GetFileNameWithoutExtension(outputPath) + ".csv");
                         entry.AESKeySize = 256;
                         entry.Size = bufferCsvFile.Length;
@@ -182,10 +183,25 @@ namespace Bitwarden_ExportBackup
                         zipOutputStream.CloseEntry();
 
                         csvStream.Close();
-                        zipOutputStream.IsStreamOwner = true;
-                        zipOutputStream.Close();
-                        zipFileStream.Close();
+                     
                     }
+
+                    using (MemoryStream jsonStream = new MemoryStream(bufferJsonFile))
+                    {
+                        ZipEntry entry = new ZipEntry(Path.GetFileNameWithoutExtension(outputPath) + ".json");
+                        entry.AESKeySize = 256;
+                        entry.Size = bufferJsonFile.Length;
+
+                        zipOutputStream.PutNextEntry(entry);
+                        StreamUtils.Copy(jsonStream, zipOutputStream, new byte[4096]);
+                        zipOutputStream.CloseEntry();
+
+                        jsonStream.Close();
+                    }
+
+                    zipOutputStream.IsStreamOwner = true;
+                    zipOutputStream.Close();
+                    zipFileStream.Close();
                 }
 
             }
