@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Bitwarden_ExportBackup.Extensions
@@ -32,6 +33,18 @@ namespace Bitwarden_ExportBackup.Extensions
         {
             if (obj != null)
                 lst.Insert(index, obj);
+        }
+
+        public static void AddRangeIfNotNull<T>(this List<T> lst, IEnumerable<T> objects)
+        {
+            if (objects != null)
+                lst.AddRange(objects);
+
+        }
+
+        public static bool ContainsAny<T>(this IEnumerable<T> haystack, IEnumerable<T> needles) where T : new()
+        {
+            return haystack.Any(x => needles.Contains(x));
         }
     }
 }

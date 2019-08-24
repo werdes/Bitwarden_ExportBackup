@@ -7,6 +7,19 @@ namespace Bitwarden_ExportBackup.Model
 {
     public class BitwardenObject
     {
+        public enum ItemType
+        {
+            Login = 1,
+            SecureNote = 2,
+            Card = 3,
+            Identity = 4
+        }
+
+        public BitwardenObject()
+        {
+            CollectionIds = new List<Guid>();
+        }
+
         [JsonProperty("object")]
         public string Object { get; set; }
 
@@ -20,7 +33,7 @@ namespace Bitwarden_ExportBackup.Model
         public Guid? FolderId { get; set; }
 
         [JsonProperty("type")]
-        public int Type { get; set; }
+        public ItemType Type { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -32,13 +45,22 @@ namespace Bitwarden_ExportBackup.Model
         public bool IsFavorite { get; set; }
         
         [JsonProperty("collectionIds")]
-        public Guid[] CollectionIds { get; set; }
+        public List<Guid> CollectionIds { get; set; }
         
         [JsonProperty("revisionDate")]
         public DateTime? RevisionDate { get; set; }
 
         [JsonProperty("login")]
         public BitwardenLogin Login { get; set; }
+
+        [JsonProperty("card")]
+        public BitwardenCard Card { get; set; }
+
+        [JsonProperty("secureNote")]
+        public BitwardenSecureNote SecureNote { get; set; }
+
+        [JsonProperty("identity")]
+        public BitwardenIdentity Identity { get; set; }
 
         [JsonProperty("fields")]
         public BitwardenField[] Fields { get; set; }

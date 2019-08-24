@@ -14,7 +14,18 @@ namespace Bitwarden_ExportBackup
 {
     public class BitwardenCli
     {
-        private const string NO_UPDATE_MESSAGE = "No update available.";
+        /// <summary>
+        /// Represents the possible types of objects retrieved via the "list" CLI command
+        /// </summary>
+        public enum ObjectType
+        {
+            Items,
+            Folders,
+            Collections,
+            Organizations
+        }
+
+        private const string NO_UPDATE_MESSAGE = "";
         private const string ALREADY_LOGGED_IN_MESSAGE = "You are already logged in as";
         private const string LAST_LOGIN_FILE = "last_login.txt";
 
@@ -44,6 +55,7 @@ namespace Bitwarden_ExportBackup
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.UseShellExecute = false;
 
+                _logWriter.Debug($"Process: {process.GetLogMessage()}");
                 process.Start();
                 process.WaitForExit();
 
@@ -123,6 +135,7 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.UseShellExecute = false;
 
+            _logWriter.Debug($"Process: {process.GetLogMessage()}");
             process.Start();
             process.WaitForExit();
 
@@ -153,6 +166,7 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.UseShellExecute = false;
 
+            _logWriter.Debug($"Process: {process.GetLogMessage()}");
             process.Start();
             process.WaitForExit();
 
@@ -166,7 +180,7 @@ namespace Bitwarden_ExportBackup
         /// </summary>
         /// <param name="type"></param>
         /// <returns></returns>
-        public List<BitwardenObject> GetObjects(string type)
+        public List<BitwardenObject> GetObjects(ObjectType type)
         {
             List<BitwardenObject> lstObjects = new List<BitwardenObject>();
 
@@ -179,11 +193,12 @@ namespace Bitwarden_ExportBackup
 
             Process process = new Process();
             process.StartInfo.FileName = _executable;
-            process.StartInfo.Arguments = $"list {type} --session {_currentSessionKey}";
+            process.StartInfo.Arguments = $"list {type.ToString().ToLower()} --session {_currentSessionKey}";
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.UseShellExecute = false;
 
+            _logWriter.Debug($"Process: {process.GetLogMessage()}");
             process.Start();
 
             string processOutput = process.StandardOutput.ReadToEnd().Trim();
@@ -312,6 +327,8 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.UseShellExecute = false;
+
+            _logWriter.Debug($"Process: {process.GetLogMessage()}");
             process.Start();
             process.WaitForExit();
 
@@ -336,6 +353,9 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.UseShellExecute = false;
+
+
+            _logWriter.Debug($"Process: {process.GetLogMessage()}");
             process.Start();
             process.WaitForExit();
 
@@ -369,6 +389,8 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.UseShellExecute = false;
+
+
             process.Start();
             process.WaitForExit();
 

@@ -12,5 +12,10 @@ namespace Bitwarden_ExportBackup.Extensions
             return Convert.ToBase64String(bytes);
         }
 
+        public static string EnvelopWith(this string s, string env)
+        {
+            return env + s + env;
+        }
+
     }
 }
