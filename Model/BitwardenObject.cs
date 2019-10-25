@@ -47,6 +47,9 @@ namespace Bitwarden_ExportBackup.Model
         [JsonProperty("collectionIds")]
         public List<Guid> CollectionIds { get; set; }
         
+        [JsonProperty("attachments")]
+        public List<BitwardenAttachment> Attachments { get; set; }
+
         [JsonProperty("revisionDate")]
         public DateTime? RevisionDate { get; set; }
 

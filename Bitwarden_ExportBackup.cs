@@ -156,7 +156,7 @@ namespace Bitwarden_ExportBackup
 
         public Bitwarden_ExportBackup()
         {
-            bool exportSuccessful = true;
+            bool exportSuccessful = false;
             try
             {
 

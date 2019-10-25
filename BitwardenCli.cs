@@ -89,7 +89,7 @@ namespace Bitwarden_ExportBackup
         {
             _logWriter.Info("Updating CLI...");
 
-            string oldVersionDestFilePath = Path.Combine(Path.GetDirectoryName(_executable), Path.GetFileNameWithoutExtension(_executable) + "_" + _version);
+            string oldVersionDestFilePath = Path.Combine(Path.GetDirectoryName(_executable), Path.GetFileNameWithoutExtension(_executable) + "_" + _version + Path.GetExtension(_executable));
             File.Move(_executable, oldVersionDestFilePath);
 
             _logWriter.Info($"Moved {_executable} to {oldVersionDestFilePath}");
@@ -239,15 +239,18 @@ namespace Bitwarden_ExportBackup
             process.StartInfo.FileName = _executable;
             process.StartInfo.Arguments = $"login {usernamePasswordArguments} --raw";
             process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
             process.StartInfo.UseShellExecute = false;
 
             process.Start();
             process.WaitForExit();
 
             string processOutput = process.StandardOutput.ReadToEnd().Trim();
-            _logWriter.Debug($"Output: {processOutput}");
+            string processError = process.StandardError.ReadToEnd().Trim(); 
+            _logWriter.Debug($"StdOutput: {processOutput}");
+            _logWriter.Debug($"StdError: {processError}");
 
-            bool wasAlreadyLoggedIn = processOutput.Trim().StartsWith(ALREADY_LOGGED_IN_MESSAGE);
+            bool wasAlreadyLoggedIn = processOutput.Trim().StartsWith(ALREADY_LOGGED_IN_MESSAGE) || processError.StartsWith(ALREADY_LOGGED_IN_MESSAGE);
 
             if (!wasAlreadyLoggedIn)
             {

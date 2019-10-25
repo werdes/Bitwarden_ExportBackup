@@ -49,4 +49,5 @@ If you do want to delete old archives via `DELETE_OLD_FILES` this is the amount 
 
 # Disclaimers
 This is by no means an audited or in any other form professionally checked tool for backing up some of your most important data. **Use with caution and at your own risk** - i'm not a security specialist or anything, i just wanted my data backed up locally in case anything happens that makes the vault inaccessible either temporarily or permanently.
-Also there is currently no way to back up Attachments
+
+Also there is currently no way to back up attachments.
