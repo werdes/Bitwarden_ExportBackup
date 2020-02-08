@@ -5,6 +5,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -14,6 +15,9 @@ namespace Bitwarden_ExportBackup
 {
     public class BitwardenCli
     {
+        private static Lazy<BitwardenCli> _instance = new Lazy<BitwardenCli>(() => new BitwardenCli(ConfigurationManager.AppSettings["CLI_PATH"]));
+        public static BitwardenCli Instance { get => _instance.Value; }
+
         /// <summary>
         /// Represents the possible types of objects retrieved via the "list" CLI command
         /// </summary>
@@ -34,7 +38,7 @@ namespace Bitwarden_ExportBackup
         private string _version;
         private string _currentSessionKey;
 
-        public BitwardenCli(string executable)
+        private BitwardenCli(string executable)
         {
             _executable = executable;
             GetVersion();

@@ -6,9 +6,9 @@ using Bitwarden_ExportBackup.Extensions;
 using Bitwarden_ExportBackup.Model;
 using Bitwarden_ExportBackup.Model.Exceptions;
 
-namespace Bitwarden_ExportBackup.ExportFormats.Exporter
+namespace Bitwarden_ExportBackup.OutputMethod.ZipAes256.Exporter
 {
-    public class OnePasswordWinCsvExporter : IExporter
+    public class OnePasswordWinCsvExporter : IZipAes256Exporter
     {
         /// <summary>
         /// Returns the content of the file that is to be exported

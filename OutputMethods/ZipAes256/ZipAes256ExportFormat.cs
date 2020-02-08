@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Bitwarden_ExportBackup.ExportFormats
+namespace Bitwarden_ExportBackup.OutputMethod.ZipAes256
 {
-    public enum ExportFormat
+    public enum ZipAes256ExportFormat
     {
         BitwardenCsv,
         OnePasswordWinCsv
