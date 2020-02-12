@@ -111,7 +111,7 @@ namespace Bitwarden_ExportBackup.OutputMethod.ZipAes256
             byte[] bufferJsonFile = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(exportItems, Formatting.Indented));
             Dictionary<BitwardenObject.ItemType, List<ExportItem>> dictItemTypes = exportItems.GroupBy(x => x.Object.Type).ToDictionary(k => k.First().Object.Type, v => v.ToList());
             string password = GetZipPassword();
-            string outputPath = Path.Combine(EXPORT_DIRECTORY, _outputName);
+            string outputPath = Path.Combine(EXPORT_DIRECTORY, _outputName + GetExtension());
 
             using (FileStream zipFileStream = File.Create(outputPath))
             {
