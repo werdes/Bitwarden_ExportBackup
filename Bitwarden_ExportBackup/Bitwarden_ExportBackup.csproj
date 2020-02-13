@@ -6,7 +6,7 @@
     <ApplicationIcon></ApplicationIcon>
     <StartupObject></StartupObject>
     <Win32Resource />
-  <Deterministic>False</Deterministic>
+    <Deterministic>False</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
